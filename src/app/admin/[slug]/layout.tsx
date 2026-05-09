@@ -1,0 +1,42 @@
+import { notFound } from "next/navigation";
+import { getRestaurantBySlug } from "@/lib/queries/menu";
+import { AdminSidebar } from "@/components/admin/sidebar";
+import { DemoNav } from "@/components/demo-nav";
+
+interface LayoutProps {
+  children: React.ReactNode;
+  params: Promise<{ slug: string }>;
+}
+
+export default async function AdminLayout({ children, params }: LayoutProps) {
+  const { slug } = await params;
+  const restaurant = await getRestaurantBySlug(slug);
+  if (!restaurant) notFound();
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-neutral-50">
+      {/* Sidebar — desktop only */}
+      <div className="hidden lg:flex lg:shrink-0">
+        <AdminSidebar slug={slug} restaurantName={restaurant.name} />
+      </div>
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Mobile header */}
+        <div className="flex items-center gap-3 border-b border-neutral-200 bg-white px-5 py-4 lg:hidden">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm font-bold text-white">
+            A
+          </div>
+          <div>
+            <p className="text-sm font-bold text-neutral-900">{restaurant.name}</p>
+            <p className="text-xs text-neutral-500">Admin</p>
+          </div>
+        </div>
+
+        <main className="flex-1 overflow-y-auto pb-24 lg:pb-6">{children}</main>
+      </div>
+
+      <DemoNav slug={slug} />
+    </div>
+  );
+}

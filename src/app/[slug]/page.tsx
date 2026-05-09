@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { RestaurantHeader } from "@/components/menu/restaurant-header";
 import { MenuPageClient } from "@/components/menu/menu-page-client";
+import { DemoNav } from "@/components/demo-nav";
 import { getRestaurantMenu } from "@/lib/queries/menu";
 
 interface PageProps {
@@ -30,6 +31,7 @@ export default async function RestaurantPage({ params }: PageProps) {
         categories={menu.categories}
         options={menu.options}
       />
+      <DemoNav slug={slug} />
     </main>
   );
 }
