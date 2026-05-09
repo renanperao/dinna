@@ -9,10 +9,11 @@ import { useCartStore, type CartItem } from "@/stores/cart-store";
 interface CartDrawerProps {
   open: boolean;
   onClose: () => void;
+  onCheckout: () => void;
   minOrderValue?: number;
 }
 
-export function CartDrawer({ open, onClose, minOrderValue = 0 }: CartDrawerProps) {
+export function CartDrawer({ open, onClose, onCheckout, minOrderValue = 0 }: CartDrawerProps) {
   const items = useCartStore((s) => s.items);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -87,10 +88,7 @@ export function CartDrawer({ open, onClose, minOrderValue = 0 }: CartDrawerProps
             size="lg"
             className="w-full"
             disabled={items.length === 0 || !meetsMin}
-            onClick={() => {
-              // Phase 2: real checkout
-              alert("Checkout será implementado na Fase 2");
-            }}
+            onClick={onCheckout}
           >
             Finalizar pedido
           </Button>

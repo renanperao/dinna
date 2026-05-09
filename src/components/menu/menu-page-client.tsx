@@ -7,6 +7,7 @@ import { ProductModal } from "./product-modal";
 import { CategoryNav } from "./category-nav";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { CartFAB } from "@/components/cart/cart-fab";
+import { CheckoutModal } from "@/components/checkout/checkout-modal";
 import { useCartStore } from "@/stores/cart-store";
 import type { MenuCategory, MenuProduct } from "@/lib/queries/menu";
 import type { ProductOption, Restaurant } from "@/lib/db/schema";
@@ -20,6 +21,7 @@ interface MenuPageClientProps {
 export function MenuPageClient({ restaurant, categories, options }: MenuPageClientProps) {
   const [selectedProduct, setSelectedProduct] = useState<MenuProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const setRestaurantSlug = useCartStore((s) => s.setRestaurantSlug);
@@ -107,7 +109,14 @@ export function MenuPageClient({ restaurant, categories, options }: MenuPageClie
       <CartDrawer
         open={cartOpen}
         onClose={() => setCartOpen(false)}
+        onCheckout={() => { setCartOpen(false); setCheckoutOpen(true); }}
         minOrderValue={Number(restaurant.minOrderValue ?? 0)}
+      />
+
+      <CheckoutModal
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        restaurant={restaurant}
       />
     </>
   );
