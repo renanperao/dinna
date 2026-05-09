@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pizzaria-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pizzaria
+      POSTGRES_PASSWORD: pizzaria
+      POSTGRES_DB: pizzaria
+      TZ: America/Sao_Paulo
+    ports:
+      - "5433:5432"
+    volumes:
+      - pizzaria_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pizzaria -d pizzaria"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pizzaria_pg_data:
