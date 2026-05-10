@@ -4,8 +4,6 @@ import {
   restaurants, categories, products, productSizes, productOptions,
   orders, orderItems, customers,
 } from "./schema";
-import { inArray, eq } from "drizzle-orm";
-
 /* ── Helper ─────────────────────────────────────────── */
 const IMG = (id: string) => `https://images.unsplash.com/photo-${id}?w=600&q=80`;
 
@@ -16,6 +14,24 @@ const SIZES = [
   { name: "GG", diameterCm: 40, slices: 12, maxFlavors: 4, delta: 38 },
 ];
 
+type RestaurantAddress = {
+  street: string;
+  number: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  cep: string;
+  lat?: number;
+  lng?: number;
+};
+
+type BusinessHours = Record<
+  "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun",
+  { open: string; close: string; closed?: boolean }
+>;
+
+type DeliveryZone = { neighborhood: string; fee: number; maxMinutes: number };
+
 async function seedRestaurant(data: {
   slug: string;
   name: string;
@@ -25,9 +41,9 @@ async function seedRestaurant(data: {
   primaryColor: string;
   logoUrl: string;
   coverUrl: string;
-  address: object;
-  businessHours: object;
-  deliveryZones: object[];
+  address: RestaurantAddress;
+  businessHours: BusinessHours;
+  deliveryZones: DeliveryZone[];
   pixKey: string;
   pizzas: { name: string; desc: string; img: string; base: number; special?: boolean; tags?: string[] }[];
 }) {

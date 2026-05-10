@@ -71,7 +71,7 @@ export function StepPayment({ restaurant, draft, items, onNext }: Props) {
       }
       clearCart();
       onNext(payment, result.orderId, result.orderNumber);
-    } catch (e) {
+    } catch {
       toast.error("Erro ao criar pedido. Tente novamente.");
       setSubmitting(false);
     }

@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
-import { ChefHat, RefreshCw } from "lucide-react";
+import { ChefHat } from "lucide-react";
 import { getRestaurantIdBySlug, getOrdersForKDS } from "@/lib/queries/orders";
 import { getRestaurantBySlug } from "@/lib/queries/menu";
 import { KDSBoard } from "@/components/kitchen/kds-board";
 import { DemoNav } from "@/components/demo-nav";
 
+// KDS pulls live state on every request; client-side Realtime + polling
+// trigger router.refresh() to re-run this query.
 export const dynamic = "force-dynamic";
 
 interface PageProps {
@@ -52,14 +54,10 @@ export default async function KitchenPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-neutral-400">
-          <RefreshCw className="h-3 w-3 animate-spin [animation-duration:10s]" />
-          Atualiza a cada 10s
-        </div>
       </header>
 
       <main className="px-4 py-6 pb-24 sm:px-6">
-        <KDSBoard orders={orders} slug={slug} />
+        <KDSBoard orders={orders} slug={slug} restaurantId={restaurantId} />
       </main>
 
       <DemoNav slug={slug} />

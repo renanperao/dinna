@@ -35,6 +35,5 @@ export async function updateOrderStatus(orderId: string, status: Status, slug: s
     .where(eq(orders.id, orderId));
 
   revalidatePath(`/kitchen/${slug}`);
-  revalidatePath(`/admin/${slug}`);
-  revalidatePath(`/admin/${slug}/orders`);
+  revalidatePath(`/admin/${slug}`, "layout");
 }

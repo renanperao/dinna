@@ -3,16 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, ClipboardList, History, ChefHat, DollarSign,
-  TrendingUp, Package, Users, Tag, Settings, Star, Bike,
+  LayoutDashboard, ClipboardList, History, ChefHat,
+  TrendingUp, Package, Users, Star, Bike,
   BookOpen, BarChart2, ShoppingBag, Ticket, ChevronDown, ChevronRight, Store,
+  LogOut,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { signOut } from "@/actions/auth";
+
+interface AdminSidebarUser {
+  name: string;
+  email: string | null;
+  role: string | null;
+}
 
 interface AdminSidebarProps {
   slug: string;
   restaurantName: string;
+  user?: AdminSidebarUser | null;
+  authConfigured?: boolean;
 }
 
 interface NavItem {
@@ -86,9 +97,28 @@ const NAV: NavItem[] = [
   },
 ];
 
-export function AdminSidebar({ slug, restaurantName }: AdminSidebarProps) {
+export function AdminSidebar({
+  slug,
+  restaurantName,
+  user,
+  authConfigured,
+}: AdminSidebarProps) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<string[]>(["Desempenho"]);
+  const [signingOut, startSignOut] = useTransition();
+
+  function handleSignOut() {
+    startSignOut(async () => {
+      try {
+        await signOut();
+      } catch (err) {
+        // signOut redirects, so the thrown NEXT_REDIRECT is expected; only show toast for real errors
+        if (err instanceof Error && !err.message.includes("NEXT_REDIRECT")) {
+          toast.error("Erro ao sair");
+        }
+      }
+    });
+  }
 
   function toggleGroup(label: string) {
     setOpenGroups((prev) =>
@@ -181,6 +211,35 @@ export function AdminSidebar({ slug, restaurantName }: AdminSidebarProps) {
         {NAV.map((item) => renderItem(item))}
       </nav>
 
+      {/* User card */}
+      {user && (
+        <div className="border-t border-neutral-100 p-3">
+          <div className="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-xs font-bold text-white">
+              {(user.name || "?")[0]?.toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-neutral-900">{user.name}</p>
+              <p className="truncate text-[10px] text-neutral-500">
+                {user.role ? `${user.role} · ` : ""}
+                {user.email ?? "sem auth"}
+              </p>
+            </div>
+            {authConfigured && (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={signingOut}
+                title="Sair"
+                className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700 disabled:opacity-60"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="space-y-1 border-t border-neutral-100 p-3">
         <Link
@@ -188,12 +247,6 @@ export function AdminSidebar({ slug, restaurantName }: AdminSidebarProps) {
           className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-neutral-400 hover:bg-neutral-50"
         >
           Dúvidas?
-        </Link>
-        <Link
-          href="#"
-          className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-neutral-400 hover:bg-neutral-50"
-        >
-          Falar com suporte
         </Link>
         <p className="px-3 py-1 text-[10px] text-neutral-300">Dinna · v0.1.0-beta</p>
       </div>

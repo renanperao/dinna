@@ -88,7 +88,7 @@ export function MenuPageClient({ restaurant, categories, options }: MenuPageClie
           ))}
           {filteredCategories.length === 0 ? (
             <p className="py-12 text-center text-sm text-neutral-500">
-              Nenhum item encontrado para "{search}".
+              Nenhum item encontrado para &ldquo;{search}&rdquo;.
             </p>
           ) : null}
         </div>

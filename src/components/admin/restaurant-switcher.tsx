@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronsUpDown, CheckCircle2, Store } from "lucide-react";
@@ -20,11 +21,15 @@ const EMOJI: Record<string, string> = {
 function Avatar({ restaurant }: { restaurant: RestaurantBrief }) {
   if (restaurant.logoUrl) {
     return (
-      <img
-        src={restaurant.logoUrl}
-        alt={restaurant.name}
-        className="h-8 w-8 shrink-0 rounded-lg object-cover"
-      />
+      <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+        <Image
+          src={restaurant.logoUrl}
+          alt={restaurant.name}
+          fill
+          sizes="32px"
+          className="object-cover"
+        />
+      </div>
     );
   }
   return (

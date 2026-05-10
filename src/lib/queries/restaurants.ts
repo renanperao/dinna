@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { restaurants } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 
 export interface RestaurantBrief {
   id: string;
@@ -13,7 +13,7 @@ export interface RestaurantBrief {
 }
 
 export async function getAllRestaurants(): Promise<RestaurantBrief[]> {
-  return db
+  const rows = await db
     .select({
       id: restaurants.id,
       slug: restaurants.slug,
@@ -24,4 +24,6 @@ export async function getAllRestaurants(): Promise<RestaurantBrief[]> {
     })
     .from(restaurants)
     .orderBy(asc(restaurants.name));
+
+  return rows.map((r) => ({ ...r, isActive: r.isActive ?? true }));
 }

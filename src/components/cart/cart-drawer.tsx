@@ -132,7 +132,7 @@ function CartLine({
             ))}
           </ul>
         ) : null}
-        {item.notes ? <p className="mt-1 text-xs italic text-neutral-500">"{item.notes}"</p> : null}
+        {item.notes ? <p className="mt-1 text-xs italic text-neutral-500">&ldquo;{item.notes}&rdquo;</p> : null}
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center rounded-full border border-neutral-300">
             <button

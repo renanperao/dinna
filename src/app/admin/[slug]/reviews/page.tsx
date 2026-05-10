@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { Star, MessageSquare, TrendingUp } from "lucide-react";
+import { Star, MessageSquare } from "lucide-react";
 import { getRestaurantIdBySlug } from "@/lib/queries/orders";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface PageProps { params: Promise<{ slug: string }> }
 

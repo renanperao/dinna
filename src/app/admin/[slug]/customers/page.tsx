@@ -1,12 +1,16 @@
 import { notFound } from "next/navigation";
-import { Users, Phone, ShoppingBag, TrendingUp, Search } from "lucide-react";
+import { Users, Phone, ShoppingBag, TrendingUp } from "lucide-react";
 import { getRestaurantIdBySlug } from "@/lib/queries/orders";
 import { getCustomerList } from "@/lib/queries/analytics";
 import { formatBRL, formatPhone } from "@/lib/utils";
+import { CustomersFilters } from "@/components/admin/customers-filters";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
-interface PageProps { params: Promise<{ slug: string }> }
+interface PageProps {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ q?: string; tier?: string }>;
+}
 
 function timeAgo(date: Date | null): string {
   if (!date) return "—";
@@ -19,35 +23,67 @@ function timeAgo(date: Date | null): string {
   return date.toLocaleDateString("pt-BR");
 }
 
-function CustomerTag({ totalSpent }: { totalSpent: number }) {
-  if (totalSpent >= 300) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">⭐ VIP</span>;
-  if (totalSpent >= 100) return <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">Frequente</span>;
-  return <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-500">Novo</span>;
+function tierOf(totalSpent: number): "vip" | "frequent" | "new" {
+  if (totalSpent >= 300) return "vip";
+  if (totalSpent >= 100) return "frequent";
+  return "new";
 }
 
-export default async function CustomersPage({ params }: PageProps) {
+function CustomerTag({ tier }: { tier: "vip" | "frequent" | "new" }) {
+  if (tier === "vip")
+    return (
+      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+        ⭐ VIP
+      </span>
+    );
+  if (tier === "frequent")
+    return (
+      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">
+        Frequente
+      </span>
+    );
+  return (
+    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-500">
+      Novo
+    </span>
+  );
+}
+
+export default async function CustomersPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const sp = await searchParams;
   const restaurantId = await getRestaurantIdBySlug(slug);
   if (!restaurantId) notFound();
 
-  const customerList = await getCustomerList(restaurantId);
+  const all = await getCustomerList(restaurantId);
+
+  const q = sp.q?.trim().toLowerCase() ?? "";
+  const tierFilter = sp.tier ?? "";
+
+  const filtered = all.filter((c) => {
+    if (q) {
+      const matchName = (c.name ?? "").toLowerCase().includes(q);
+      const matchPhone = c.phone.replace(/\D/g, "").includes(q.replace(/\D/g, ""));
+      if (!matchName && !matchPhone) return false;
+    }
+    if (tierFilter && tierOf(c.totalSpent) !== tierFilter) return false;
+    return true;
+  });
 
   const stats = {
-    total: customerList.length,
-    vip: customerList.filter((c) => c.totalSpent >= 300).length,
-    frequent: customerList.filter((c) => c.totalSpent >= 100 && c.totalSpent < 300).length,
-    totalRevenue: customerList.reduce((s, c) => s + c.totalSpent, 0),
+    total: all.length,
+    vip: all.filter((c) => c.totalSpent >= 300).length,
+    frequent: all.filter((c) => c.totalSpent >= 100 && c.totalSpent < 300).length,
+    totalRevenue: all.reduce((s, c) => s + c.totalSpent, 0),
   };
 
   return (
     <div className="px-5 py-6 sm:px-8">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-neutral-900">Clientes</h1>
         <p className="text-sm text-neutral-500">Base de clientes cadastrados</p>
       </div>
 
-      {/* Stats */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: "Total de clientes", value: stats.total.toString(), icon: Users, color: "bg-violet-600" },
@@ -59,8 +95,12 @@ export default async function CustomersPage({ params }: PageProps) {
           return (
             <div key={card.label} className="rounded-2xl bg-white p-5 shadow-sm">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{card.label}</p>
-                <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${card.color} text-white`}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  {card.label}
+                </p>
+                <div
+                  className={`flex h-7 w-7 items-center justify-center rounded-lg ${card.color} text-white`}
+                >
                   <Icon className="h-3.5 w-3.5" />
                 </div>
               </div>
@@ -70,31 +110,16 @@ export default async function CustomersPage({ params }: PageProps) {
         })}
       </div>
 
-      {/* Search */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="search"
-            placeholder="Pesquisar por nome ou telefone..."
-            className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
-          />
-        </div>
-        <select className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus:outline-none">
-          <option>Todos</option>
-          <option>VIP</option>
-          <option>Frequentes</option>
-          <option>Novos</option>
-        </select>
-      </div>
+      <CustomersFilters />
 
-      {/* Table */}
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-        {customerList.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-20 text-neutral-400">
             <Users className="h-12 w-12 opacity-20" />
-            <p className="text-sm">Nenhum cliente ainda.</p>
-            <p className="text-xs">Os clientes aparecem ao finalizar um pedido com telefone.</p>
+            <p className="text-sm">Nenhum cliente encontrado.</p>
+            {(q || tierFilter) && (
+              <p className="text-xs">Ajuste os filtros para ver mais resultados.</p>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -111,8 +136,8 @@ export default async function CustomersPage({ params }: PageProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-50">
-                {customerList.map((c) => (
-                  <tr key={c.id} className="hover:bg-neutral-50 transition-colors">
+                {filtered.map((c) => (
+                  <tr key={c.id} id={c.id} className="transition-colors hover:bg-neutral-50">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-xs font-bold text-white">
@@ -135,18 +160,24 @@ export default async function CustomersPage({ params }: PageProps) {
                     <td className="px-5 py-4 text-right font-semibold text-neutral-900">
                       {formatBRL(c.totalSpent)}
                     </td>
-                    <td className="px-5 py-4 text-right text-neutral-600">{formatBRL(c.avgTicket)}</td>
-                    <td className="px-5 py-4 text-right text-neutral-500 text-xs">{timeAgo(c.lastOrderAt)}</td>
+                    <td className="px-5 py-4 text-right text-neutral-600">
+                      {formatBRL(c.avgTicket)}
+                    </td>
+                    <td className="px-5 py-4 text-right text-xs text-neutral-500">
+                      {timeAgo(c.lastOrderAt)}
+                    </td>
                     <td className="px-5 py-4">
-                      <CustomerTag totalSpent={c.totalSpent} />
+                      <CustomerTag tier={tierOf(c.totalSpent)} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="flex items-center justify-between border-t border-neutral-100 px-5 py-3 text-xs text-neutral-400">
-              <span>Registros por página: 20</span>
-              <span>1–{customerList.length} de {customerList.length}</span>
+              <span>
+                Exibindo {filtered.length} de {all.length}
+              </span>
+              <span>{formatBRL(filtered.reduce((s, c) => s + c.totalSpent, 0))} no resultado</span>
             </div>
           </div>
         )}

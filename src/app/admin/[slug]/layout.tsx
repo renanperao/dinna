@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getRestaurantBySlug } from "@/lib/queries/menu";
 import { AdminSidebar } from "@/components/admin/sidebar";
 import { DemoNav } from "@/components/demo-nav";
+import { getSession } from "@/lib/auth";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,14 +11,32 @@ interface LayoutProps {
 
 export default async function AdminLayout({ children, params }: LayoutProps) {
   const { slug } = await params;
-  const restaurant = await getRestaurantBySlug(slug);
+  const [restaurant, session] = await Promise.all([
+    getRestaurantBySlug(slug),
+    getSession(),
+  ]);
   if (!restaurant) notFound();
+
+  const sidebarUser = session.user
+    ? {
+        name: session.user.name ?? session.user.email ?? "Usuário",
+        email: session.user.email,
+        role: session.user.role,
+      }
+    : session.bypass
+      ? { name: "Modo dev (sem auth)", email: null, role: null }
+      : null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-neutral-50">
       {/* Sidebar — desktop only */}
       <div className="hidden lg:flex lg:shrink-0">
-        <AdminSidebar slug={slug} restaurantName={restaurant.name} />
+        <AdminSidebar
+          slug={slug}
+          restaurantName={restaurant.name}
+          user={sidebarUser}
+          authConfigured={session.configured}
+        />
       </div>
 
       {/* Main content */}

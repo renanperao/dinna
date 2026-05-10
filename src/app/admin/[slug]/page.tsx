@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ShoppingBag,
@@ -9,9 +10,12 @@ import {
   ChefHat,
 } from "lucide-react";
 import { getRestaurantIdBySlug, getAdminStats } from "@/lib/queries/orders";
+import { getOrdersByHourToday, getSummaryStats } from "@/lib/queries/analytics";
 import { formatBRL } from "@/lib/utils";
+import { HourlyChart } from "@/components/admin/charts/hourly-chart";
+import { TrendPill } from "@/components/admin/charts/trend-pill";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -50,7 +54,15 @@ export default async function AdminDashboard({ params }: PageProps) {
   const restaurantId = await getRestaurantIdBySlug(slug);
   if (!restaurantId) notFound();
 
-  const stats = await getAdminStats(restaurantId);
+  const [stats, summary, hourly] = await Promise.all([
+    getAdminStats(restaurantId),
+    getSummaryStats(restaurantId),
+    getOrdersByHourToday(restaurantId),
+  ]);
+
+  const yesterdayAvgTicket =
+    summary.yesterday.count > 0 ? summary.yesterday.revenue / summary.yesterday.count : 0;
+  const peakHour = hourly.reduce((acc, h) => (h.count > acc.count ? h : acc), { hour: 0, count: 0 });
 
   const statCards = [
     {
@@ -58,28 +70,30 @@ export default async function AdminDashboard({ params }: PageProps) {
       value: stats.todayCount.toString(),
       icon: ShoppingBag,
       color: "bg-violet-600",
-      sub: "total do dia",
+      trend: <TrendPill current={summary.today.count} previous={summary.yesterday.count} suffix="vs ontem" />,
     },
     {
       label: "Receita hoje",
       value: formatBRL(stats.todayRevenue),
       icon: TrendingUp,
       color: "bg-emerald-600",
-      sub: "vendas brutas",
+      trend: <TrendPill current={summary.today.revenue} previous={summary.yesterday.revenue} suffix="vs ontem" />,
     },
     {
       label: "Em aberto",
       value: stats.pendingCount.toString(),
       icon: Clock,
       color: "bg-amber-500",
-      sub: "recebidos + preparando",
+      trend: (
+        <span className="text-xs text-neutral-500">recebidos + preparando</span>
+      ),
     },
     {
       label: "Ticket médio",
       value: formatBRL(stats.avgTicket),
       icon: Ticket,
       color: "bg-blue-600",
-      sub: "por pedido hoje",
+      trend: <TrendPill current={stats.avgTicket} previous={yesterdayAvgTicket} suffix="vs ontem" />,
     },
   ];
 
@@ -97,22 +111,60 @@ export default async function AdminDashboard({ params }: PageProps) {
       </div>
 
       {/* Stats cards */}
-      <div className="mb-8 grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
             <div key={card.label} className="rounded-2xl bg-white p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-sm font-medium text-neutral-500">{card.label}</p>
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${card.color} text-white`}>
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${card.color} text-white`}
+                >
                   <Icon className="h-4 w-4" />
                 </div>
               </div>
               <p className="text-2xl font-black text-neutral-900">{card.value}</p>
-              <p className="mt-1 text-xs text-neutral-400">{card.sub}</p>
+              <div className="mt-2">{card.trend}</div>
             </div>
           );
         })}
+      </div>
+
+      {/* Hourly chart + KDS card */}
+      <div className="mb-6 grid gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl bg-white p-6 shadow-sm lg:col-span-2">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <h2 className="font-bold text-neutral-900">Pedidos por hora — hoje</h2>
+              <p className="text-xs text-neutral-500">
+                {peakHour.count > 0
+                  ? `Pico às ${String(peakHour.hour).padStart(2, "0")}:00 com ${peakHour.count} pedido${peakHour.count !== 1 ? "s" : ""}`
+                  : "Sem pedidos ainda hoje"}
+              </p>
+            </div>
+            <span className="text-sm font-semibold text-violet-600">
+              {summary.today.count} hoje
+            </span>
+          </div>
+          <HourlyChart data={hourly} />
+        </div>
+
+        <Link
+          href={`/kitchen/${slug}`}
+          className="group flex flex-col justify-between rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50 p-5 transition-colors hover:border-violet-400 hover:bg-violet-100"
+        >
+          <div>
+            <ChefHat className="mb-2 h-7 w-7 text-violet-500" />
+            <p className="text-sm font-bold text-violet-900">Tela da cozinha (KDS)</p>
+            <p className="mt-1 text-xs text-violet-700">
+              Acompanhe os pedidos em tempo real na tela de produção
+            </p>
+          </div>
+          <span className="mt-4 inline-flex items-center self-start rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors group-hover:bg-violet-700">
+            Abrir KDS →
+          </span>
+        </Link>
       </div>
 
       {/* Recent orders */}
@@ -137,12 +189,10 @@ export default async function AdminDashboard({ params }: PageProps) {
                   key={order.id}
                   className="flex items-center gap-4 px-5 py-4 hover:bg-neutral-50"
                 >
-                  {/* Number */}
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-sm font-bold text-neutral-700">
                     #{order.number}
                   </div>
 
-                  {/* Info */}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-neutral-900">
                       {order.customerName}
@@ -164,14 +214,14 @@ export default async function AdminDashboard({ params }: PageProps) {
                     </div>
                   </div>
 
-                  {/* Status */}
                   {st && (
-                    <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${st.color}`}>
+                    <span
+                      className={`hidden shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${st.color}`}
+                    >
                       {st.label}
                     </span>
                   )}
 
-                  {/* Total */}
                   <p className="shrink-0 text-sm font-bold text-neutral-900">
                     {formatBRL(Number(order.total))}
                   </p>
@@ -180,25 +230,6 @@ export default async function AdminDashboard({ params }: PageProps) {
             })}
           </div>
         )}
-      </div>
-
-      {/* Quick access to KDS */}
-      <div className="mt-6 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50 p-5">
-        <div className="flex items-center gap-3">
-          <ChefHat className="h-6 w-6 text-violet-500" />
-          <div>
-            <p className="text-sm font-bold text-violet-900">Tela da Cozinha (KDS)</p>
-            <p className="text-xs text-violet-600">
-              Gerencie os pedidos em tempo real na tela de produção
-            </p>
-          </div>
-          <a
-            href={`/kitchen/${slug}`}
-            className="ml-auto rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700"
-          >
-            Abrir KDS →
-          </a>
-        </div>
       </div>
     </div>
   );

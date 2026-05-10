@@ -2,10 +2,11 @@
 
 import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, MapPin, Store, ChefHat, CheckCircle, Bike } from "lucide-react";
+import { Clock, MapPin, Store, ChefHat, CheckCircle, Bike, Wifi, WifiOff } from "lucide-react";
 import { updateOrderStatus } from "@/actions/update-order-status";
 import type { OrderWithItems } from "@/lib/queries/orders";
 import { formatBRL } from "@/lib/utils";
+import { useRealtimeOrders } from "./use-realtime-orders";
 
 const STATUS_CONFIG = {
   received: {
@@ -165,6 +166,7 @@ function KDSCard({ order, slug }: { order: OrderWithItems; slug: string }) {
 interface KDSBoardProps {
   orders: OrderWithItems[];
   slug: string;
+  restaurantId: string;
 }
 
 const STATUS_ORDER = ["received", "preparing", "ready", "out_for_delivery"];
@@ -175,24 +177,72 @@ const STATUS_LABELS: Record<string, string> = {
   out_for_delivery: "⚫ Em entrega",
 };
 
-export function KDSBoard({ orders, slug }: KDSBoardProps) {
+export function KDSBoard({ orders, slug, restaurantId }: KDSBoardProps) {
   const router = useRouter();
+  const realtimeStatus = useRealtimeOrders(restaurantId);
 
-  // Auto-refresh every 10s
+  // Polling fallback: more aggressive when realtime is unavailable
   useEffect(() => {
-    const interval = setInterval(() => router.refresh(), 10000);
-    return () => clearInterval(interval);
-  }, [router]);
+    const interval = realtimeStatus === "connected" ? 30000 : 10000;
+    const id = setInterval(() => router.refresh(), interval);
+    return () => clearInterval(id);
+  }, [router, realtimeStatus]);
 
-  if (orders.length === 0) {
+  return (
+    <>
+      <RealtimeBadge status={realtimeStatus} />
+
+      {orders.length === 0 ? (
+        <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-neutral-400">
+          <ChefHat className="h-16 w-16 opacity-20" />
+          <p className="text-lg font-semibold">Nenhum pedido ativo</p>
+          <p className="text-sm">Os pedidos aparecerão aqui assim que chegarem</p>
+        </div>
+      ) : (
+        <KDSGrid orders={orders} slug={slug} />
+      )}
+    </>
+  );
+}
+
+function RealtimeBadge({ status }: { status: ReturnType<typeof useRealtimeOrders> }) {
+  if (status === "disabled") {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-neutral-400">
-        <ChefHat className="h-16 w-16 opacity-20" />
-        <p className="text-lg font-semibold">Nenhum pedido ativo</p>
-        <p className="text-sm">Os pedidos aparecerão aqui assim que chegarem</p>
+      <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600">
+        <WifiOff className="h-3 w-3" />
+        Polling 10s · realtime desativado
       </div>
     );
   }
+  if (status === "connected") {
+    return (
+      <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+        <Wifi className="h-3 w-3" />
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+        Tempo real ativo
+      </div>
+    );
+  }
+  if (status === "connecting") {
+    return (
+      <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
+        <Wifi className="h-3 w-3 animate-pulse" />
+        Conectando…
+      </div>
+    );
+  }
+  return (
+    <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
+      <WifiOff className="h-3 w-3" />
+      Realtime offline · usando polling
+    </div>
+  );
+}
+
+function KDSGrid({ orders, slug }: { orders: OrderWithItems[]; slug: string }) {
 
   const byStatus = STATUS_ORDER.reduce(
     (acc, s) => {
