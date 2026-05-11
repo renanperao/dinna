@@ -91,6 +91,11 @@ const NAV: NavItem[] = [
     href: (s) => `/admin/${s}/delivery`,
   },
   {
+    label: "Equipe",
+    icon: Users,
+    href: (s) => `/admin/${s}/team`,
+  },
+  {
     label: "Minha empresa",
     icon: Store,
     href: (s) => `/admin/${s}/settings`,
