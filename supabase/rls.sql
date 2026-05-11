@@ -1,4 +1,4 @@
--- Row Level Security para o Supabase do projeto Dinna/Pizzaria
+-- Row Level Security para o Supabase do projeto NexoMenu
 --
 -- COMO RODAR: Dashboard Supabase -> SQL Editor -> cole tudo isso -> Run.
 -- É idempotente: pode rodar várias vezes sem quebrar.
@@ -86,7 +86,7 @@ CREATE POLICY customers_select_own_restaurant ON public.customers
 
 -- (As demais tabelas — restaurants, categories, products, etc. — ficam com
 --  RLS ligado mas SEM policies. Isso significa: zero acesso via anon/authenticated.
---  O menu publico (/pizzaria-do-ze) e renderizado server-side via Drizzle,
+--  O menu publico (/<slug>) e renderizado server-side via Drizzle,
 --  entao nao precisa de policy publica.)
 
 -- =========================================================================

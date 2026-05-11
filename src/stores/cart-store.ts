@@ -92,7 +92,7 @@ export const useCartStore = create<CartState>()(
         ),
     }),
     {
-      name: "pizzaria-cart",
+      name: "nexomenu-cart",
       storage: createJSONStorage(() =>
         typeof window !== "undefined" ? sessionStorage : (undefined as never),
       ),

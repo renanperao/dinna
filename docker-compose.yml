@@ -1,22 +1,22 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: pizzaria-postgres
+    container_name: nexomenu-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: pizzaria
-      POSTGRES_PASSWORD: pizzaria
-      POSTGRES_DB: pizzaria
+      POSTGRES_USER: nexomenu
+      POSTGRES_PASSWORD: nexomenu
+      POSTGRES_DB: nexomenu
       TZ: America/Sao_Paulo
     ports:
       - "5433:5432"
     volumes:
-      - pizzaria_pg_data:/var/lib/postgresql/data
+      - nexomenu_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pizzaria -d pizzaria"]
+      test: ["CMD-SHELL", "pg_isready -U nexomenu -d nexomenu"]
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
-  pizzaria_pg_data:
+  nexomenu_pg_data:

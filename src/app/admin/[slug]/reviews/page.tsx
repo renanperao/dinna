@@ -11,7 +11,7 @@ const MOCK_REVIEWS = [
   { name: "João S.", rating: 5, comment: "Pizza chegou quente e no tempo certo! Calabresa simplesmente perfeita.", time: "há 2 horas", order: "#47" },
   { name: "Marina L.", rating: 5, comment: "Atendimento incrível e a pizza de quatro queijos estava divina. Já virei cliente fiel!", time: "há 5 horas", order: "#46" },
   { name: "Pedro A.", rating: 4, comment: "Pizza boa, entrega rápida. Só achei a borda de catupiry um pouco salgada.", time: "ontem", order: "#44" },
-  { name: "Carla M.", rating: 5, comment: "Melhor pizzaria da região! Pedido correto, embalagem ótima e sabor incrível.", time: "ontem", order: "#43" },
+  { name: "Carla M.", rating: 5, comment: "Melhor restaurante da região! Pedido correto, embalagem ótima e sabor incrível.", time: "ontem", order: "#43" },
   { name: "Roberto F.", rating: 3, comment: "Pizza boa mas demorou mais do que o esperado. Esperava 40min e veio em 1h.", time: "há 2 dias", order: "#40" },
 ];
 

@@ -3,8 +3,8 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pizzaria SaaS",
-  description: "Cardápio digital e gestão para pizzarias",
+  title: "NexoMenu",
+  description: "Cardápio digital e gestão para restaurantes",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

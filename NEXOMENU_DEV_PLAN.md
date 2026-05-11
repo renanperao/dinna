@@ -1,7 +1,7 @@
-# 🍕 Pizzaria SaaS — Plano de Desenvolvimento Completo
+# NexoMenu — Plano de Desenvolvimento Completo
 
 > **Documento técnico para execução pelo Claude Code**
-> Sistema de gestão e cardápio digital para pizzaria, inspirado nas funcionalidades do Cardápio Web com diferenciais exclusivos. Otimizado para o mercado brasileiro: baixa latência (região sa-east-1), métodos de pagamento locais (PIX, cartões nacionais), integração nativa com WhatsApp.
+> Sistema de gestão e cardápio digital para restaurantes, inspirado nas funcionalidades do Cardápio Web com diferenciais exclusivos. Otimizado para o mercado brasileiro: baixa latência (região sa-east-1), métodos de pagamento locais (PIX, cartões nacionais), integração nativa com WhatsApp.
 
 ---
 
@@ -23,7 +23,7 @@
 ## 1. Visão geral
 
 ### 1.1. Objetivo
-Construir um sistema SaaS completo para uma pizzaria operar **delivery, retirada e mesas** sem depender do iFood, com:
+Construir um sistema SaaS completo para um restaurante operar **delivery, retirada e mesas** sem depender do iFood, com:
 - Cardápio digital próprio (link único e QR code)
 - Painel administrativo com KDS, financeiro, CRM e relatórios
 - Integração com PIX automático e cartão
@@ -106,7 +106,7 @@ date-fns + date-fns-tz (timezone America/Sao_Paulo)
 | Free tier | 500MB + 2GB transfer | 0.5GB | 5GB |
 | Custo Pro | US$ 25/mês | US$ 19/mês | US$ 39/mês |
 
-Para uma pizzaria o Supabase **resolve 4 problemas com 1 contratação**: banco + auth + storage de imagens + realtime do KDS.
+Para um restaurante o Supabase **resolve 4 problemas com 1 contratação**: banco + auth + storage de imagens + realtime do KDS.
 
 **Configuração crítica:**
 - Região: `sa-east-1` (São Paulo) — latência ~15ms vs ~120ms (us-east)
@@ -122,7 +122,7 @@ Para uma pizzaria o Supabase **resolve 4 problemas com 1 contratação**: banco 
 - ✅ **Sem mensalidade** — só taxa por transação
 - ✅ Cartão de crédito com antecipação automática
 - ✅ Documentação razoável em português + suporte BR
-- ✅ Permite **split payment** (útil se a pizzaria virar marketplace)
+- ✅ Permite **split payment** (útil se o restaurante virar marketplace)
 
 **Taxas Mercado Pago (referência dezembro/2025):**
 | Método | Taxa | Recebimento |
@@ -234,10 +234,10 @@ Para uma pizzaria o Supabase **resolve 4 problemas com 1 contratação**: banco 
 
 ### 3.2. Multi-tenancy
 
-Cada pizzaria é um **tenant** identificado por `restaurant_id` (UUID). Estratégia:
+Cada restaurante é um **tenant** identificado por `restaurant_id` (UUID). Estratégia:
 - Schema único, todas as tabelas têm `restaurant_id NOT NULL`
 - Row Level Security (RLS) garante isolamento no banco
-- URL do cardápio: `pizzaria.com.br/{slug}` (ex: `pizzaria.com.br/dom-pedro`)
+- URL do cardápio: `nexomenu.com.br/{slug}` (ex: `nexomenu.com.br/dom-pedro`)
 - Domínio próprio futuro: `cardapio.dompedro.com.br` (CNAME → Vercel)
 
 ### 3.3. Fluxo de um pedido (do clique ao forno)
@@ -264,7 +264,7 @@ Cada pizzaria é um **tenant** identificado por `restaurant_id` (UUID). Estraté
 ## 4. Estrutura do projeto
 
 ```
-pizzaria-saas/
+nexomenu/
 ├── .env.local                        # variáveis (não commitar)
 ├── .env.example                      # template
 ├── .gitignore
@@ -724,7 +724,7 @@ CREATE POLICY "Users see only their restaurant"
 
 **Objetivo:** projeto rodando localmente com banco conectado.
 
-1. Criar repo GitHub `pizzaria-saas`
+1. Criar repo GitHub `nexomenu`
 2. `pnpm create next-app@latest --typescript --tailwind --app --turbopack`
 3. Instalar dependências core:
    ```bash
@@ -739,9 +739,9 @@ CREATE POLICY "Users see only their restaurant"
 4. Configurar shadcn: `pnpm dlx shadcn@latest init`
 5. Criar projeto no Supabase (região São Paulo)
 6. Rodar migrations iniciais: `pnpm drizzle-kit push`
-7. Criar seed com 1 restaurante de teste (`pizzaria-do-zé`) e 10 pizzas
+7. Criar seed com 1 restaurante de teste (`restaurante-demo`) e 10 pizzas
 
-**Critério de aceite:** `localhost:3000/pizzaria-do-ze` mostra os produtos do banco.
+**Critério de aceite:** `localhost:3000/restaurante-demo` mostra os produtos do banco.
 
 ---
 
@@ -940,7 +940,7 @@ CREATE POLICY "Users see only their restaurant"
 - [ ] PostHog rodando
 
 **Checklist de produto:**
-- [ ] Logo e cores da pizzaria customizadas
+- [ ] Logo e cores do restaurante customizadas
 - [ ] Cardápio real cadastrado (com fotos profissionais!)
 - [ ] Zonas de entrega mapeadas no Google Maps
 - [ ] Conta Mercado Pago verificada e KYC aprovado
@@ -978,19 +978,19 @@ NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=APP_USR-xxx
 # Evolution API
 EVOLUTION_API_URL=https://evo.seudominio.com.br
 EVOLUTION_API_KEY=xxx
-EVOLUTION_INSTANCE_NAME=pizzaria-do-ze
+EVOLUTION_INSTANCE_NAME=restaurante-demo
 
 # Resend
 RESEND_API_KEY=re_xxx
-EMAIL_FROM="Pizzaria do Zé <pedidos@pizzariadoze.com.br>"
+EMAIL_FROM="Restaurante Demo <pedidos@restaurantedemo.com.br>"
 
 # Google Maps
 GOOGLE_MAPS_API_KEY=AIza...
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...
 
 # App
-NEXT_PUBLIC_APP_URL=https://pizzaria.com.br
-NEXT_PUBLIC_DEFAULT_RESTAURANT_SLUG=pizzaria-do-ze
+NEXT_PUBLIC_APP_URL=https://nexomenu.com.br
+NEXT_PUBLIC_DEFAULT_RESTAURANT_SLUG=restaurante-demo
 
 # Sentry
 SENTRY_DSN=https://xxx@sentry.io/xxx
@@ -1035,7 +1035,7 @@ cloudflared tunnel --url http://localhost:3000
 
 ## 9. Checklist de lançamento
 
-### Antes de mostrar pro dono da pizzaria
+### Antes de mostrar pro dono do restaurante
 - [ ] Cardápio completo cadastrado com fotos
 - [ ] Conta Mercado Pago do dono integrada
 - [ ] WhatsApp Business configurado
@@ -1054,7 +1054,7 @@ cloudflared tunnel --url http://localhost:3000
 ### Pós-lançamento (primeira semana)
 - [ ] Acompanhar Sentry para erros
 - [ ] PostHog: analisar onde clientes desistem
-- [ ] Coletar feedback da equipe da pizzaria
+- [ ] Coletar feedback da equipe do restaurante
 - [ ] Ajustar tempo médio de preparo
 - [ ] Configurar alerta de pedido > 60min sem atualização
 
@@ -1078,7 +1078,7 @@ cloudflared tunnel --url http://localhost:3000
 - BI / dashboard executivo
 
 ### V4 (mês 7-12)
-- Marketplace (várias pizzarias na plataforma — viraria competidor do iFood)
+- Marketplace (vários restaurantes na plataforma — viraria competidor do iFood)
 - App nativo (React Native)
 - TEF integrado (maquininhas Cielo, Stone)
 - Integração com balanças

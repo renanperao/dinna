@@ -19,19 +19,19 @@ async function seed() {
   const [restaurant] = await db
     .insert(restaurants)
     .values({
-      slug: "pizzaria-do-ze",
-      name: "Pizzaria do Zé",
+      slug: "restaurante-demo",
+      name: "Restaurante Demo",
       logoUrl:
         "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&q=80",
       coverUrl:
         "https://images.unsplash.com/photo-1593504049359-74330189a345?w=1600&q=80",
       description:
-        "A melhor pizza do bairro, no forno a lenha desde 1998. Massa fina, ingredientes frescos.",
+        "Restaurante de demonstração — cardápio completo para testar o NexoMenu. Substitua pelos dados do seu restaurante.",
       phone: "+5511999990000",
       whatsapp: "+5511999990000",
       address: {
-        street: "Rua das Pizzas",
-        number: "1998",
+        street: "Rua Demonstração",
+        number: "100",
         neighborhood: "Centro",
         city: "São Paulo",
         state: "SP",
@@ -54,7 +54,7 @@ async function seed() {
         { neighborhood: "Pinheiros", fee: 7.5, maxMinutes: 40 },
       ],
       minOrderValue: "30.00",
-      pixKey: "pix@pizzariadoze.com.br",
+      pixKey: "pix@restaurantedemo.com.br",
       primaryColor: "#C41E3A",
       isActive: true,
     })
@@ -304,7 +304,7 @@ async function seed() {
   console.log(`   Pizzas: ${insertedPizzas.length}`);
   console.log(`   Bebidas: ${beverages.length}`);
   console.log("");
-  console.log("👉 Acesse http://localhost:3000/pizzaria-do-ze");
+  console.log("👉 Acesse http://localhost:3000/restaurante-demo");
 
   process.exit(0);
 }

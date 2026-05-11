@@ -57,7 +57,7 @@ export function LoginForm({ next }: LoginFormProps) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="voce@pizzaria.com.br"
+            placeholder="voce@restaurante.com.br"
             className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
           />
         </div>

@@ -84,7 +84,7 @@ export function RestaurantSwitcher({ restaurants, currentSlug }: Props) {
       {open && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl">
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-            Suas pizzarias
+            Seus restaurantes
           </p>
           {restaurants.map((r) => {
             const isCurrent = r.slug === currentSlug;

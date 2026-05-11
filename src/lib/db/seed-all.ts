@@ -128,7 +128,7 @@ async function seedRestaurant(data: {
 
 /* ── Main ───────────────────────────────────────────── */
 async function seedAll() {
-  console.log("🌱 Criando 3 pizzarias...\n");
+  console.log("🌱 Criando 3 restaurantes demo...\n");
 
   // Wipe everything
   await db.delete(orderItems);

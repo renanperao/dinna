@@ -1,6 +1,6 @@
-# 🔌 Pizzaria SaaS — Camada de Integrações (Marketplaces)
+# 🔌 NexoMenu — Camada de Integrações (Marketplaces)
 
-> **Documento complementar** ao `PIZZARIA_DEV_PLAN.md`. Resolve a integração com iFood, Pedidos10 e qualquer marketplace via padrão **Open Delivery** + **Adapter Pattern**. Leia depois do plano principal.
+> **Documento complementar** ao `NEXOMENU_DEV_PLAN.md`. Resolve a integração com iFood, Pedidos10 e qualquer marketplace via padrão **Open Delivery** + **Adapter Pattern**. Leia depois do plano principal.
 
 ---
 
@@ -22,9 +22,9 @@
 
 ## 1. Por que esta camada existe
 
-Sem ela, o pizzaria-saas seria um cardápio digital próprio — mas o iFood ainda gera **40-60% do volume** da maioria das pizzarias brasileiras. Ignorar isso é cortar o pé direito do dono.
+Sem ela, o NexoMenu seria um cardápio digital próprio — mas o iFood ainda gera **40-60% do volume** da maioria dos restaurantes brasileiros. Ignorar isso é cortar o pé direito do dono.
 
-**O objetivo:** todos os pedidos (próprio + iFood + Pedidos10 + futuros marketplaces) chegam no **mesmo KDS**, no **mesmo dashboard**, no **mesmo relatório**. Para a equipe da pizzaria, é tudo igual. A diferença fica abstraída no backend.
+**O objetivo:** todos os pedidos (próprio + iFood + Pedidos10 + futuros marketplaces) chegam no **mesmo KDS**, no **mesmo dashboard**, no **mesmo relatório**. Para a equipe do restaurante, é tudo igual. A diferença fica abstraída no backend.
 
 **Princípio arquitetural:** *Anti-Corruption Layer* (DDD). Nenhum modelo do iFood vaza para o domínio interno. Tradução acontece nas bordas.
 

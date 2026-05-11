@@ -20,7 +20,7 @@ async function seedDemo() {
   const [restaurant] = await db
     .select({ id: restaurants.id, slug: restaurants.slug })
     .from(restaurants)
-    .where(eq(restaurants.slug, "pizzaria-do-ze"))
+    .where(eq(restaurants.slug, "restaurante-demo"))
     .limit(1);
 
   if (!restaurant) {
@@ -117,12 +117,12 @@ async function seedDemo() {
   }
 
   console.log(`\n✅ Demo: ${orderNum-1} pedidos + ${DEMO_PEOPLE.length} clientes criados.`);
-  console.log("   Cardápio: http://localhost:3000/pizzaria-do-ze");
-  console.log("   Cozinha:  http://localhost:3000/kitchen/pizzaria-do-ze");
-  console.log("   Admin:    http://localhost:3000/admin/pizzaria-do-ze");
-  console.log("   Desempenho: http://localhost:3000/admin/pizzaria-do-ze/performance");
-  console.log("   Produtos: http://localhost:3000/admin/pizzaria-do-ze/performance/products");
-  console.log("   Clientes: http://localhost:3000/admin/pizzaria-do-ze/customers");
+  console.log("   Cardápio: http://localhost:3000/restaurante-demo");
+  console.log("   Cozinha:  http://localhost:3000/kitchen/restaurante-demo");
+  console.log("   Admin:    http://localhost:3000/admin/restaurante-demo");
+  console.log("   Desempenho: http://localhost:3000/admin/restaurante-demo/performance");
+  console.log("   Produtos: http://localhost:3000/admin/restaurante-demo/performance/products");
+  console.log("   Clientes: http://localhost:3000/admin/restaurante-demo/customers");
   process.exit(0);
 }
 

@@ -178,7 +178,7 @@ export default async function PerformanceCustomersPage({ params, searchParams }:
                     </p>
                   </div>
                   <a
-                    href={whatsappLink(c.phone, "sua pizzaria")}
+                    href={whatsappLink(c.phone, "seu restaurante")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
