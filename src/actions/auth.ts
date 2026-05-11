@@ -118,6 +118,25 @@ export async function signUpOwner(input: {
   return { ok: true, needsEmailConfirmation };
 }
 
+export async function setPassword(password: string): Promise<AuthActionResult> {
+  const supabase = await createSupabaseServer();
+  if (!supabase) {
+    return { ok: false, error: "Auth não configurado" };
+  }
+  if (password.length < 8) {
+    return { ok: false, error: "A senha precisa ter no mínimo 8 caracteres" };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    return { ok: false, error: translateAuthError(error.message) };
+  }
+
+  revalidatePath("/", "layout");
+  const session = await getSession();
+  return { ok: true, redirectTo: redirectPathForUser(session) };
+}
+
 export async function signOut() {
   const supabase = await createSupabaseServer();
   if (supabase) {
