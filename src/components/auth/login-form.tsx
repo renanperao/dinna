@@ -27,7 +27,7 @@ export function LoginForm({ next }: LoginFormProps) {
         const result = await signInWithPassword(email, password);
         if (result.ok) {
           toast.success("Bem-vindo!");
-          router.replace(next ?? "/admin");
+          router.replace(next ?? result.redirectTo ?? "/login");
           router.refresh();
         } else {
           toast.error(result.error);

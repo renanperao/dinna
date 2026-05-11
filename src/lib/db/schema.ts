@@ -26,7 +26,6 @@ export const productTypeEnum = pgEnum("product_type", [
 
 export const userRoleEnum = pgEnum("user_role", [
   "owner",
-  "manager",
   "operator",
   "kitchen",
   "delivery",

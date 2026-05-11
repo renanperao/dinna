@@ -2,10 +2,10 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, restaurants } from "@/lib/db/schema";
 import { createSupabaseServer, isSupabaseConfigured } from "@/lib/supabase/server";
 
-export type AppRole = "owner" | "manager" | "operator" | "kitchen" | "delivery";
+export type AppRole = "owner" | "operator" | "kitchen" | "delivery";
 
 export interface AuthSession {
   configured: boolean;
@@ -16,6 +16,7 @@ export interface AuthSession {
     email: string | null;
     role: AppRole | null;
     restaurantId: string | null;
+    restaurantSlug: string | null;
     name: string | null;
   } | null;
 }
@@ -43,16 +44,17 @@ export async function getSession(): Promise<AuthSession> {
 
   if (!authUser) return { configured: true, bypass: false, user: null };
 
-  // Look up our app users row by id
   const rows = await db
     .select({
       id: users.id,
       email: users.email,
       role: users.role,
       restaurantId: users.restaurantId,
+      restaurantSlug: restaurants.slug,
       name: users.name,
     })
     .from(users)
+    .leftJoin(restaurants, eq(users.restaurantId, restaurants.id))
     .where(eq(users.id, authUser.id))
     .limit(1);
 
@@ -67,6 +69,7 @@ export async function getSession(): Promise<AuthSession> {
           email: dbUser.email,
           role: dbUser.role as AppRole,
           restaurantId: dbUser.restaurantId,
+          restaurantSlug: dbUser.restaurantSlug,
           name: dbUser.name,
         }
       : {
@@ -74,30 +77,27 @@ export async function getSession(): Promise<AuthSession> {
           email: authUser.email ?? null,
           role: null,
           restaurantId: null,
+          restaurantSlug: null,
           name: authUser.user_metadata?.name ?? authUser.email ?? null,
         },
   };
 }
 
 /**
- * Throws (or returns) information that the calling page should redirect.
- * Use in admin/kitchen pages to enforce auth + role.
+ * Caminho pra onde o usuário deve ir após login, baseado no role dele.
+ * Roles sem destino definido caem em /admin/{slug} (o layout vai bloquear
+ * com NoAccessScreen, mas o usuário tem oferta de "Sair" pra recomeçar).
  */
-export async function requireSession(opts?: {
-  allowedRoles?: AppRole[];
-}): Promise<AuthSession> {
-  const session = await getSession();
+export function redirectPathForUser(session: AuthSession): string {
+  const u = session.user;
+  if (!u || !u.restaurantSlug) return "/login";
 
-  // Dev / unconfigured: bypass
-  if (session.bypass) return session;
-
-  // Configured but not logged in
-  if (!session.user) return session;
-
-  // Role check (if specified)
-  if (opts?.allowedRoles && session.user.role && !opts.allowedRoles.includes(session.user.role)) {
-    return { ...session, user: null }; // signal "forbidden"
+  switch (u.role) {
+    case "owner":
+      return `/admin/${u.restaurantSlug}`;
+    case "kitchen":
+      return `/kitchen/${u.restaurantSlug}`;
+    default:
+      return `/admin/${u.restaurantSlug}`;
   }
-
-  return session;
 }

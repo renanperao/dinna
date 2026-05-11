@@ -1,21 +1,13 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { UtensilsCrossed } from "lucide-react";
-import { LoginForm } from "@/components/auth/login-form";
+import { SignupForm } from "@/components/auth/signup-form";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth";
 
-interface PageProps {
-  searchParams: Promise<{ next?: string }>;
-}
-
-export default async function LoginPage({ searchParams }: PageProps) {
-  const sp = await searchParams;
+export default async function SignupPage() {
   const session = await getSession();
-
-  // Already logged in: redirect immediately
   if (session.user) {
-    redirect(sp.next ?? "/admin");
+    redirect("/admin");
   }
 
   const configured = isSupabaseConfigured();
@@ -31,39 +23,26 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </div>
 
         <div className="rounded-2xl bg-white p-8 shadow-xl">
-          <h1 className="mb-1 text-xl font-bold text-neutral-900">Portal do Parceiro</h1>
+          <h1 className="mb-1 text-xl font-bold text-neutral-900">Criar conta</h1>
           <p className="mb-6 text-sm text-neutral-500">
-            Entre com seu e-mail e senha para acessar o painel.
+            Crie sua conta de gestor e seu restaurante em um único passo.
           </p>
 
           {!configured ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <p className="font-bold">Auth não configurado</p>
               <p className="mt-1 text-xs">
-                Defina <code className="rounded bg-white px-1">NEXT_PUBLIC_SUPABASE_URL</code> e{" "}
-                <code className="rounded bg-white px-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> no{" "}
-                <code className="rounded bg-white px-1">.env.local</code> para habilitar login.
-                Em desenvolvimento, o middleware libera o acesso automaticamente sem auth.
+                Configure o Supabase no <code className="rounded bg-white px-1">.env.local</code>{" "}
+                para habilitar o cadastro.
               </p>
             </div>
           ) : (
-            <>
-              <LoginForm next={sp.next} />
-              <p className="mt-6 border-t border-neutral-100 pt-4 text-center text-xs text-neutral-500">
-                Ainda não tem conta?{" "}
-                <Link
-                  href="/signup"
-                  className="font-semibold text-violet-600 hover:underline"
-                >
-                  Cadastre seu restaurante
-                </Link>
-              </p>
-            </>
+            <SignupForm />
           )}
         </div>
 
         <p className="mt-6 text-center text-xs text-neutral-400">
-          Problemas para acessar? Fale com o suporte.
+          Ao criar uma conta você concorda com nossos termos de uso.
         </p>
       </div>
     </main>

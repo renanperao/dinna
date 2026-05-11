@@ -1,9 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ChefHat } from "lucide-react";
 import { getRestaurantIdBySlug, getOrdersForKDS } from "@/lib/queries/orders";
 import { getRestaurantBySlug } from "@/lib/queries/menu";
 import { KDSBoard } from "@/components/kitchen/kds-board";
-import { DemoNav } from "@/components/demo-nav";
+import { getSession } from "@/lib/auth";
+import { NoAccessScreen } from "@/components/auth/no-access-screen";
+import { KitchenSignOutButton } from "@/components/kitchen/sign-out-button";
 
 // KDS pulls live state on every request; client-side Realtime + polling
 // trigger router.refresh() to re-run this query.
@@ -21,6 +23,22 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function KitchenPage({ params }: PageProps) {
   const { slug } = await params;
+
+  const session = await getSession();
+
+  // Auth: owner ou kitchen acessam. Bypass mode (dev) deixa passar.
+  if (!session.bypass) {
+    if (!session.user) {
+      redirect(`/login?next=/kitchen/${slug}`);
+    }
+    if (session.user.restaurantSlug !== slug) {
+      return <NoAccessScreen reason="wrong-restaurant" yourSlug={session.user.restaurantSlug} />;
+    }
+    if (session.user.role !== "owner" && session.user.role !== "kitchen") {
+      return <NoAccessScreen reason="wrong-role" role={session.user.role} yourSlug={session.user.restaurantSlug} />;
+    }
+  }
+
   const restaurantId = await getRestaurantIdBySlug(slug);
   if (!restaurantId) notFound();
 
@@ -54,13 +72,12 @@ export default async function KitchenPage({ params }: PageProps) {
             </p>
           </div>
         </div>
+        {session.configured && session.user && <KitchenSignOutButton />}
       </header>
 
       <main className="px-4 py-6 pb-24 sm:px-6">
         <KDSBoard orders={orders} slug={slug} restaurantId={restaurantId} />
       </main>
-
-      <DemoNav slug={slug} />
     </div>
   );
 }

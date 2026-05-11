@@ -198,7 +198,7 @@ export function AdminSidebar({
       {/* Brand */}
       <div className="flex items-center gap-3 border-b border-neutral-100 px-5 py-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-violet-800 text-sm font-black text-white shadow-sm">
-          D
+          N
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-neutral-900">{restaurantName}</p>
@@ -248,7 +248,7 @@ export function AdminSidebar({
         >
           Dúvidas?
         </Link>
-        <p className="px-3 py-1 text-[10px] text-neutral-300">Dinna · v0.1.0-beta</p>
+        <p className="px-3 py-1 text-[10px] text-neutral-300">NexoMenu · v0.1.0-beta</p>
       </div>
     </aside>
   );

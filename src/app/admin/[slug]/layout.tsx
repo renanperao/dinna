@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getRestaurantBySlug } from "@/lib/queries/menu";
 import { AdminSidebar } from "@/components/admin/sidebar";
-import { DemoNav } from "@/components/demo-nav";
 import { getSession } from "@/lib/auth";
+import { NoAccessScreen } from "@/components/auth/no-access-screen";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,6 +16,19 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
     getSession(),
   ]);
   if (!restaurant) notFound();
+
+  // Auth: only owner has admin access. Bypass mode (dev) lets through.
+  if (!session.bypass) {
+    if (!session.user) {
+      redirect(`/login?next=/admin/${slug}`);
+    }
+    if (session.user.restaurantSlug !== slug) {
+      return <NoAccessScreen reason="wrong-restaurant" yourSlug={session.user.restaurantSlug} />;
+    }
+    if (session.user.role !== "owner") {
+      return <NoAccessScreen reason="wrong-role" role={session.user.role} yourSlug={session.user.restaurantSlug} />;
+    }
+  }
 
   const sidebarUser = session.user
     ? {
@@ -55,7 +68,6 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
         <main className="flex-1 overflow-y-auto pb-24 lg:pb-6">{children}</main>
       </div>
 
-      <DemoNav slug={slug} />
     </div>
   );
 }
