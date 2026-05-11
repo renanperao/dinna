@@ -4,6 +4,10 @@ import { orders, orderItems, customers, categories, products } from "@/lib/db/sc
 import { eq, and, gte, lte, sql, desc } from "drizzle-orm";
 
 const TZ = "America/Sao_Paulo";
+// Inlined as a SQL literal so identical TZ-dependent expressions in SELECT and
+// GROUP BY produce textually identical SQL (otherwise Drizzle emits a separate
+// $N parameter per occurrence and Postgres rejects the GROUP BY match).
+const TZ_SQL = sql.raw(`'${TZ}'`);
 
 /** Returns YYYY-MM-DD as seen in the São Paulo timezone, regardless of host clock. */
 const dayKeyTZ = (() => {
@@ -75,14 +79,14 @@ export async function getRevenueByDay(
 
   const rows = await db
     .select({
-      day: sql<string>`date_trunc('day', ${orders.createdAt} AT TIME ZONE ${TZ})::date::text`,
+      day: sql<string>`date_trunc('day', ${orders.createdAt} AT TIME ZONE ${TZ_SQL})::date::text`,
       revenue: sql<number>`coalesce(sum(${orders.total}::numeric), 0)::float`,
       count: sql<number>`count(*)::int`,
     })
     .from(orders)
     .where(and(eq(orders.restaurantId, restaurantId), gte(orders.createdAt, period.start)))
-    .groupBy(sql`date_trunc('day', ${orders.createdAt} AT TIME ZONE ${TZ})::date`)
-    .orderBy(sql`date_trunc('day', ${orders.createdAt} AT TIME ZONE ${TZ})::date`);
+    .groupBy(sql`date_trunc('day', ${orders.createdAt} AT TIME ZONE ${TZ_SQL})::date`)
+    .orderBy(sql`date_trunc('day', ${orders.createdAt} AT TIME ZONE ${TZ_SQL})::date`);
 
   const map = new Map(rows.map((r) => [r.day, r]));
   const current: RevenuePoint[] = [];
@@ -142,12 +146,12 @@ export async function getOrdersByHourToday(restaurantId: string): Promise<Hourly
 
   const rows = await db
     .select({
-      hour: sql<number>`extract(hour from ${orders.createdAt} AT TIME ZONE ${TZ})::int`,
+      hour: sql<number>`extract(hour from ${orders.createdAt} AT TIME ZONE ${TZ_SQL})::int`,
       count: sql<number>`count(*)::int`,
     })
     .from(orders)
     .where(and(eq(orders.restaurantId, restaurantId), gte(orders.createdAt, start)))
-    .groupBy(sql`extract(hour from ${orders.createdAt} AT TIME ZONE ${TZ})`);
+    .groupBy(sql`extract(hour from ${orders.createdAt} AT TIME ZONE ${TZ_SQL})`);
 
   const map = new Map(rows.map((r) => [Number(r.hour), r.count]));
   const result: HourlyPoint[] = [];
@@ -572,7 +576,7 @@ export async function getCustomerInsights(
   // 5. Série diária novos vs recorrentes
   const dailyRows = await db
     .select({
-      day: sql<string>`date_trunc('day', ${orders.createdAt} AT TIME ZONE ${TZ})::date::text`,
+      day: sql<string>`date_trunc('day', ${orders.createdAt} AT TIME ZONE ${TZ_SQL})::date::text`,
       customerId: orders.customerId,
       customerCreatedAt: customers.createdAt,
     })
@@ -707,15 +711,15 @@ export async function getHeatmap(restaurantId: string, days = 30): Promise<Heatm
 
   const rows = await db
     .select({
-      dow: sql<number>`extract(dow from ${orders.createdAt} AT TIME ZONE ${TZ})::int`,
-      hour: sql<number>`extract(hour from ${orders.createdAt} AT TIME ZONE ${TZ})::int`,
+      dow: sql<number>`extract(dow from ${orders.createdAt} AT TIME ZONE ${TZ_SQL})::int`,
+      hour: sql<number>`extract(hour from ${orders.createdAt} AT TIME ZONE ${TZ_SQL})::int`,
       count: sql<number>`count(*)::int`,
     })
     .from(orders)
     .where(and(eq(orders.restaurantId, restaurantId), gte(orders.createdAt, since)))
     .groupBy(
-      sql`extract(dow from ${orders.createdAt} AT TIME ZONE ${TZ})`,
-      sql`extract(hour from ${orders.createdAt} AT TIME ZONE ${TZ})`,
+      sql`extract(dow from ${orders.createdAt} AT TIME ZONE ${TZ_SQL})`,
+      sql`extract(hour from ${orders.createdAt} AT TIME ZONE ${TZ_SQL})`,
     );
 
   const matrix: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
