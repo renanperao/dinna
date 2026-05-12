@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { users, restaurants } from "@/lib/db/schema";
 import { createSupabaseServer, isSupabaseConfigured } from "@/lib/supabase/server";
 
-export type AppRole = "owner" | "operator" | "kitchen" | "delivery";
+export type AppRole = "owner" | "operator" | "kitchen" | "delivery" | "superadmin";
 
 export interface AuthSession {
   configured: boolean;
@@ -90,7 +90,10 @@ export async function getSession(): Promise<AuthSession> {
  */
 export function redirectPathForUser(session: AuthSession): string {
   const u = session.user;
-  if (!u || !u.restaurantSlug) return "/login";
+  if (!u) return "/login";
+
+  if (u.role === "superadmin") return "/admin";
+  if (!u.restaurantSlug) return "/login";
 
   switch (u.role) {
     case "owner":

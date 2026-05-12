@@ -17,15 +17,16 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
   ]);
   if (!restaurant) notFound();
 
-  // Auth: only owner has admin access. Bypass mode (dev) lets through.
+  // Auth: only owner has admin access. Superadmin gets access to any restaurant. Bypass mode (dev) lets through.
   if (!session.bypass) {
     if (!session.user) {
       redirect(`/login?next=/admin/${slug}`);
     }
-    if (session.user.restaurantSlug !== slug) {
+    const isSuperadmin = session.user.role === "superadmin";
+    if (!isSuperadmin && session.user.restaurantSlug !== slug) {
       return <NoAccessScreen reason="wrong-restaurant" yourSlug={session.user.restaurantSlug} />;
     }
-    if (session.user.role !== "owner") {
+    if (!isSuperadmin && session.user.role !== "owner") {
       return <NoAccessScreen reason="wrong-role" role={session.user.role} yourSlug={session.user.restaurantSlug} />;
     }
   }

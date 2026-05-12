@@ -213,6 +213,15 @@ export function AdminSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+        {user?.role === "superadmin" && (
+          <Link
+            href="/admin"
+            className="mb-1 flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-50"
+          >
+            <ChevronRight className="h-4 w-4 rotate-180" />
+            Todos os clientes
+          </Link>
+        )}
         {NAV.map((item) => renderItem(item))}
       </nav>
 

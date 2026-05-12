@@ -29,6 +29,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "operator",
   "kitchen",
   "delivery",
+  "superadmin",
 ]);
 
 export const orderTypeEnum = pgEnum("order_type", ["delivery", "pickup", "dine_in"]);
