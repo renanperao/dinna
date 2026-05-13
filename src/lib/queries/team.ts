@@ -2,7 +2,7 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, userRestaurants } from "@/lib/db/schema";
 
 export type TeamMember = {
   id: string;
@@ -19,12 +19,13 @@ export async function getTeamMembers(restaurantId: string): Promise<TeamMember[]
       id: users.id,
       name: users.name,
       email: users.email,
-      role: users.role,
+      role: userRestaurants.role,
       isActive: users.isActive,
       createdAt: users.createdAt,
     })
-    .from(users)
-    .where(eq(users.restaurantId, restaurantId))
+    .from(userRestaurants)
+    .innerJoin(users, eq(users.id, userRestaurants.userId))
+    .where(eq(userRestaurants.restaurantId, restaurantId))
     .orderBy(users.createdAt);
 
   return rows.map((r) => ({

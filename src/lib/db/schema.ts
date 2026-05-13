@@ -32,6 +32,14 @@ export const userRoleEnum = pgEnum("user_role", [
   "superadmin",
 ]);
 
+// Role efetivo dentro de um restaurante — `superadmin` virou flag em users.
+export const membershipRoleEnum = pgEnum("membership_role", [
+  "owner",
+  "operator",
+  "kitchen",
+  "delivery",
+]);
+
 export const orderTypeEnum = pgEnum("order_type", ["delivery", "pickup", "dine_in"]);
 
 export const orderStatusEnum = pgEnum("order_status", [
@@ -102,14 +110,32 @@ export const restaurants = pgTable("restaurants", {
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(),
-  restaurantId: uuid("restaurant_id").references(() => restaurants.id, { onDelete: "cascade" }),
-  role: userRoleEnum("role").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   phone: text("phone"),
+  isSuperadmin: boolean("is_superadmin").default(false).notNull(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const userRestaurants = pgTable(
+  "user_restaurants",
+  {
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    restaurantId: uuid("restaurant_id")
+      .references(() => restaurants.id, { onDelete: "cascade" })
+      .notNull(),
+    role: membershipRoleEnum("role").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_user_restaurant").on(t.userId, t.restaurantId),
+    index("idx_user_restaurants_user").on(t.userId),
+    index("idx_user_restaurants_restaurant").on(t.restaurantId),
+  ],
+);
 
 export const categories = pgTable(
   "categories",
@@ -324,6 +350,22 @@ export const restaurantsRelations = relations(restaurants, ({ many }) => ({
   options: many(productOptions),
   orders: many(orders),
   customers: many(customers),
+  memberships: many(userRestaurants),
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+  memberships: many(userRestaurants),
+}));
+
+export const userRestaurantsRelations = relations(userRestaurants, ({ one }) => ({
+  user: one(users, {
+    fields: [userRestaurants.userId],
+    references: [users.id],
+  }),
+  restaurant: one(restaurants, {
+    fields: [userRestaurants.restaurantId],
+    references: [restaurants.id],
+  }),
 }));
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
@@ -396,6 +438,9 @@ export const customerAddressesRelations = relations(customerAddresses, ({ one })
 }));
 
 export type Restaurant = typeof restaurants.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type UserRestaurant = typeof userRestaurants.$inferSelect;
+export type MembershipRole = (typeof membershipRoleEnum.enumValues)[number];
 export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type ProductSize = typeof productSizes.$inferSelect;

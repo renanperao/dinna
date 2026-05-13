@@ -13,7 +13,11 @@ const ROLE_OPTIONS = [
 
 type Role = (typeof ROLE_OPTIONS)[number]["value"];
 
-export function InviteForm() {
+interface InviteFormProps {
+  restaurantSlug: string;
+}
+
+export function InviteForm({ restaurantSlug }: InviteFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("kitchen");
@@ -22,7 +26,7 @@ export function InviteForm() {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      const result = await inviteTeamMember({ name, email, role });
+      const result = await inviteTeamMember({ restaurantSlug, name, email, role });
       if (result.ok) {
         toast.success(`Convite enviado para ${email}`);
         setName("");

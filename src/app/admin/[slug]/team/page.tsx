@@ -42,14 +42,14 @@ export default async function TeamPage({ params }: PageProps) {
           </p>
         </div>
       ) : (
-        <InviteForm />
+        <InviteForm restaurantSlug={slug} />
       )}
 
       <section>
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-neutral-500">
           Membros ({members.length})
         </h2>
-        <TeamList members={members} currentUserId={currentUserId} />
+        <TeamList members={members} currentUserId={currentUserId} restaurantSlug={slug} />
       </section>
     </div>
   );

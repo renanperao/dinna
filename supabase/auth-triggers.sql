@@ -1,20 +1,24 @@
 -- Sincronização auth.users → public.users + criação self-service de restaurante.
 --
--- COMO RODAR: Dashboard Supabase → SQL Editor → cole tudo isso → Run.
+-- COMO RODAR: Dashboard Supabase → SQL Editor → cole tudo isso → Run,
+--             OU pnpm db:apply-auth-triggers.
 -- É idempotente: pode rodar várias vezes sem quebrar.
 --
 -- Como funciona: quando alguém faz signUp() ou é convidado via admin.inviteUserByEmail(),
 -- o Supabase Auth insere uma linha em auth.users. Esse trigger lê o raw_user_meta_data
--- e cria a linha correspondente em public.users, decidindo pelo campo `signup_type`:
+-- e cria a linha correspondente em public.users + public.user_restaurants,
+-- decidindo pelo campo `signup_type`:
 --
---   - signup_type = 'owner': cria um restaurante novo + usuário como owner.
+--   - signup_type = 'owner': cria um restaurante novo + usuário + membership owner.
 --     Metadata esperada: { signup_type, name, restaurant_name, restaurant_phone }
 --
---   - signup_type = 'invite': cria só o usuário, vinculado ao restaurant_id do invite.
+--   - signup_type = 'invite': cria só o usuário + membership pro restaurante do invite.
 --     Metadata esperada: { signup_type, name, restaurant_id, role }
 --
+--   - signup_type = 'superadmin': cria usuário com is_superadmin=true, sem membership.
+--     Metadata esperada: { signup_type, name }
+--
 --   - sem signup_type: não faz nada (ex: usuário criado direto pelo dashboard do Supabase).
---     Você vai precisar criar a linha em public.users manualmente nesse caso.
 
 -- =========================================================================
 -- Helper: slugify sem depender da extensão `unaccent`.
@@ -27,15 +31,12 @@ AS $$
 DECLARE
   result text;
 BEGIN
-  -- Tira acentos manualmente (cobre os comuns de pt-BR)
   result := lower(input);
   result := translate(result,
     'áàâãäéèêëíìîïóòôõöúùûüçñÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ',
     'aaaaaeeeeiiiiooooouuuucnaaaaaeeeeiiiiooooouuuucn'
   );
-  -- Tudo que não for [a-z0-9] vira hífen
   result := regexp_replace(result, '[^a-z0-9]+', '-', 'g');
-  -- Tira hífens das pontas
   result := trim(both '-' from result);
   IF result = '' THEN
     result := 'restaurante';
@@ -56,7 +57,7 @@ AS $$
 DECLARE
   signup_type text;
   user_name text;
-  user_role_val public.user_role;
+  membership_role_val public.membership_role;
   rest_id uuid;
   rest_name text;
   rest_phone text;
@@ -75,7 +76,6 @@ BEGIN
       RAISE EXCEPTION 'restaurant_name é obrigatório no signup de owner';
     END IF;
 
-    -- Gera slug único (loop incrementando counter se houver colisão)
     slug_base := public.slugify(rest_name);
     slug_attempt := slug_base;
     WHILE EXISTS (SELECT 1 FROM public.restaurants WHERE slug = slug_attempt) LOOP
@@ -107,22 +107,35 @@ BEGIN
     )
     RETURNING id INTO rest_id;
 
-    INSERT INTO public.users (id, restaurant_id, role, name, email)
-    VALUES (NEW.id, rest_id, 'owner', user_name, NEW.email);
+    INSERT INTO public.users (id, name, email)
+    VALUES (NEW.id, user_name, NEW.email);
+
+    INSERT INTO public.user_restaurants (user_id, restaurant_id, role)
+    VALUES (NEW.id, rest_id, 'owner');
 
   ELSIF signup_type = 'invite' THEN
     rest_id := (NEW.raw_user_meta_data->>'restaurant_id')::uuid;
-    user_role_val := COALESCE(
-      NULLIF(NEW.raw_user_meta_data->>'role', '')::public.user_role,
-      'operator'::public.user_role
+    membership_role_val := COALESCE(
+      NULLIF(NEW.raw_user_meta_data->>'role', '')::public.membership_role,
+      'operator'::public.membership_role
     );
 
     IF rest_id IS NULL THEN
       RAISE EXCEPTION 'restaurant_id é obrigatório no invite';
     END IF;
 
-    INSERT INTO public.users (id, restaurant_id, role, name, email)
-    VALUES (NEW.id, rest_id, user_role_val, user_name, NEW.email);
+    INSERT INTO public.users (id, name, email)
+    VALUES (NEW.id, user_name, NEW.email)
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO public.user_restaurants (user_id, restaurant_id, role)
+    VALUES (NEW.id, rest_id, membership_role_val)
+    ON CONFLICT (user_id, restaurant_id) DO UPDATE SET role = EXCLUDED.role;
+
+  ELSIF signup_type = 'superadmin' THEN
+    INSERT INTO public.users (id, name, email, is_superadmin)
+    VALUES (NEW.id, user_name, NEW.email, true)
+    ON CONFLICT (id) DO UPDATE SET is_superadmin = true;
   END IF;
 
   RETURN NEW;

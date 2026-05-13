@@ -6,17 +6,24 @@ import {
   LayoutDashboard, ClipboardList, History, ChefHat,
   TrendingUp, Package, Users, Star, Bike,
   BookOpen, BarChart2, ShoppingBag, Ticket, ChevronDown, ChevronRight, Store,
-  LogOut,
+  LogOut, Check,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/actions/auth";
 
+interface SidebarMembership {
+  slug: string;
+  name: string;
+}
+
 interface AdminSidebarUser {
   name: string;
   email: string | null;
   role: string | null;
+  isSuperadmin: boolean;
+  memberships: SidebarMembership[];
 }
 
 interface AdminSidebarProps {
@@ -110,6 +117,7 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<string[]>(["Desempenho"]);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
   const [signingOut, startSignOut] = useTransition();
 
   function handleSignOut() {
@@ -117,7 +125,6 @@ export function AdminSidebar({
       try {
         await signOut();
       } catch (err) {
-        // signOut redirects, so the thrown NEXT_REDIRECT is expected; only show toast for real errors
         if (err instanceof Error && !err.message.includes("NEXT_REDIRECT")) {
           toast.error("Erro ao sair");
         }
@@ -198,22 +205,74 @@ export function AdminSidebar({
     );
   }
 
+  const hasMultipleRestaurants = (user?.memberships.length ?? 0) > 1;
+
   return (
     <aside className="flex h-full w-64 flex-col border-r border-neutral-200 bg-white">
-      {/* Brand */}
-      <div className="flex items-center gap-3 border-b border-neutral-100 px-5 py-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-violet-800 text-sm font-black text-white shadow-sm">
-          N
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-neutral-900">{restaurantName}</p>
-          <p className="text-xs text-neutral-500">Portal do Parceiro</p>
-        </div>
+      {/* Brand + restaurant switcher */}
+      <div className="relative border-b border-neutral-100">
+        <button
+          type="button"
+          onClick={() => hasMultipleRestaurants && setSwitcherOpen((v) => !v)}
+          disabled={!hasMultipleRestaurants}
+          className={cn(
+            "flex w-full items-center gap-3 px-5 py-4 text-left",
+            hasMultipleRestaurants && "hover:bg-neutral-50",
+          )}
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-violet-800 text-sm font-black text-white shadow-sm">
+            {restaurantName[0]?.toUpperCase() ?? "N"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-neutral-900">{restaurantName}</p>
+            <p className="text-xs text-neutral-500">
+              {hasMultipleRestaurants
+                ? `${user!.memberships.length} pizzarias · trocar`
+                : "Portal do Parceiro"}
+            </p>
+          </div>
+          {hasMultipleRestaurants && (
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 shrink-0 text-neutral-400 transition-transform",
+                switcherOpen && "rotate-180",
+              )}
+            />
+          )}
+        </button>
+
+        {hasMultipleRestaurants && switcherOpen && (
+          <div className="absolute left-3 right-3 top-full z-20 mt-1 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+            <ul className="max-h-72 overflow-y-auto py-1">
+              {user!.memberships.map((m) => {
+                const isCurrent = m.slug === slug;
+                return (
+                  <li key={m.slug}>
+                    <Link
+                      href={`/admin/${m.slug}`}
+                      onClick={() => setSwitcherOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-neutral-50",
+                        isCurrent ? "bg-violet-50/60 text-violet-700" : "text-neutral-700",
+                      )}
+                    >
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-violet-700 text-xs font-bold text-white">
+                        {m.name[0]?.toUpperCase() ?? "?"}
+                      </div>
+                      <span className="flex-1 truncate">{m.name}</span>
+                      {isCurrent && <Check className="h-3.5 w-3.5 text-violet-600" />}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-        {user?.role === "superadmin" && (
+        {user?.isSuperadmin && (
           <Link
             href="/admin"
             className="mb-1 flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-50"

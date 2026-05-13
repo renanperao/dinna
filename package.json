@@ -13,6 +13,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env.local src/lib/db/seed.ts",
     "db:create-superuser": "tsx --env-file=.env.local src/lib/db/create-superuser.ts",
+    "db:apply-rls": "tsx --env-file=.env.local src/lib/db/apply-rls.ts",
+    "db:migrate-multi-restaurant": "tsx --env-file=.env.local src/lib/db/migrate-multi-restaurant.ts",
+    "db:apply-auth-triggers": "tsx --env-file=.env.local src/lib/db/apply-auth-triggers.ts",
     "db:demo": "tsx --env-file=.env.local src/lib/db/seed-demo.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down"

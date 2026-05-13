@@ -16,9 +16,10 @@ const ROLE_META: Record<TeamMember["role"], { label: string; icon: React.Element
 interface TeamListProps {
   members: TeamMember[];
   currentUserId: string | null;
+  restaurantSlug: string;
 }
 
-export function TeamList({ members, currentUserId }: TeamListProps) {
+export function TeamList({ members, currentUserId, restaurantSlug }: TeamListProps) {
   const [pending, startTransition] = useTransition();
 
   function handleRemove(member: TeamMember) {
@@ -29,7 +30,7 @@ export function TeamList({ members, currentUserId }: TeamListProps) {
     if (!confirm(`Remover ${member.name}? Esta ação não pode ser desfeita.`)) return;
 
     startTransition(async () => {
-      const result = await removeTeamMember(member.id);
+      const result = await removeTeamMember({ restaurantSlug, userId: member.id });
       if (result.ok) {
         toast.success(`${member.name} removido`);
       } else {

@@ -20,7 +20,7 @@ export default async function AdminIndex() {
     redirect("/login?next=/admin");
   }
 
-  if (session.user.role !== "superadmin") {
+  if (!session.user.isSuperadmin) {
     redirect(redirectPathForUser(session));
   }
 

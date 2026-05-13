@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getRestaurantBySlug } from "@/lib/queries/menu";
 import { AdminSidebar } from "@/components/admin/sidebar";
-import { getSession } from "@/lib/auth";
+import { findMembership, getSession } from "@/lib/auth";
 import { NoAccessScreen } from "@/components/auth/no-access-screen";
 
 interface LayoutProps {
@@ -17,28 +17,49 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
   ]);
   if (!restaurant) notFound();
 
-  // Auth: only owner has admin access. Superadmin gets access to any restaurant. Bypass mode (dev) lets through.
+  let activeRole: string | null = null;
+
+  // Auth: superadmin OU membership com role 'owner' no slug. Bypass (dev) libera.
   if (!session.bypass) {
     if (!session.user) {
       redirect(`/login?next=/admin/${slug}`);
     }
-    const isSuperadmin = session.user.role === "superadmin";
-    if (!isSuperadmin && session.user.restaurantSlug !== slug) {
-      return <NoAccessScreen reason="wrong-restaurant" yourSlug={session.user.restaurantSlug} />;
+
+    const isSuperadmin = session.user.isSuperadmin;
+    const membership = findMembership(session, slug);
+
+    if (!isSuperadmin && !membership) {
+      const fallback = session.user.memberships[0]?.restaurantSlug ?? null;
+      return <NoAccessScreen reason="wrong-restaurant" yourSlug={fallback} />;
     }
-    if (!isSuperadmin && session.user.role !== "owner") {
-      return <NoAccessScreen reason="wrong-role" role={session.user.role} yourSlug={session.user.restaurantSlug} />;
+
+    if (!isSuperadmin && membership && membership.role !== "owner") {
+      const fallback = session.user.memberships[0]?.restaurantSlug ?? null;
+      return <NoAccessScreen reason="wrong-role" role={membership.role} yourSlug={fallback} />;
     }
+
+    activeRole = isSuperadmin ? "superadmin" : (membership?.role ?? null);
   }
 
   const sidebarUser = session.user
     ? {
         name: session.user.name ?? session.user.email ?? "Usuário",
         email: session.user.email,
-        role: session.user.role,
+        role: activeRole,
+        isSuperadmin: session.user.isSuperadmin,
+        memberships: session.user.memberships.map((m) => ({
+          slug: m.restaurantSlug,
+          name: m.restaurantName,
+        })),
       }
     : session.bypass
-      ? { name: "Modo dev (sem auth)", email: null, role: null }
+      ? {
+          name: "Modo dev (sem auth)",
+          email: null,
+          role: null,
+          isSuperadmin: false,
+          memberships: [],
+        }
       : null;
 
   return (

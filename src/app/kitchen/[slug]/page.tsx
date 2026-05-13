@@ -3,7 +3,7 @@ import { ChefHat } from "lucide-react";
 import { getRestaurantIdBySlug, getOrdersForKDS } from "@/lib/queries/orders";
 import { getRestaurantBySlug } from "@/lib/queries/menu";
 import { KDSBoard } from "@/components/kitchen/kds-board";
-import { getSession } from "@/lib/auth";
+import { findMembership, getSession } from "@/lib/auth";
 import { NoAccessScreen } from "@/components/auth/no-access-screen";
 import { KitchenSignOutButton } from "@/components/kitchen/sign-out-button";
 
@@ -26,16 +26,20 @@ export default async function KitchenPage({ params }: PageProps) {
 
   const session = await getSession();
 
-  // Auth: owner ou kitchen acessam. Bypass mode (dev) deixa passar.
+  // Auth: owner/kitchen (com membership nesse slug) ou superadmin acessam. Bypass (dev) libera.
   if (!session.bypass) {
     if (!session.user) {
       redirect(`/login?next=/kitchen/${slug}`);
     }
-    if (session.user.restaurantSlug !== slug) {
-      return <NoAccessScreen reason="wrong-restaurant" yourSlug={session.user.restaurantSlug} />;
+    const isSuperadmin = session.user.isSuperadmin;
+    const membership = findMembership(session, slug);
+    const fallback = session.user.memberships[0]?.restaurantSlug ?? null;
+
+    if (!isSuperadmin && !membership) {
+      return <NoAccessScreen reason="wrong-restaurant" yourSlug={fallback} />;
     }
-    if (session.user.role !== "owner" && session.user.role !== "kitchen") {
-      return <NoAccessScreen reason="wrong-role" role={session.user.role} yourSlug={session.user.restaurantSlug} />;
+    if (!isSuperadmin && membership && membership.role !== "owner" && membership.role !== "kitchen") {
+      return <NoAccessScreen reason="wrong-role" role={membership.role} yourSlug={fallback} />;
     }
   }
 

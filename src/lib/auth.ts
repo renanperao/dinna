@@ -1,11 +1,18 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users, restaurants } from "@/lib/db/schema";
+import { users, userRestaurants, restaurants } from "@/lib/db/schema";
 import { createSupabaseServer, isSupabaseConfigured } from "@/lib/supabase/server";
 
-export type AppRole = "owner" | "operator" | "kitchen" | "delivery" | "superadmin";
+export type MembershipRole = "owner" | "operator" | "kitchen" | "delivery";
+
+export interface Membership {
+  restaurantId: string;
+  restaurantSlug: string;
+  restaurantName: string;
+  role: MembershipRole;
+}
 
 export interface AuthSession {
   configured: boolean;
@@ -14,10 +21,9 @@ export interface AuthSession {
   user: {
     id: string;
     email: string | null;
-    role: AppRole | null;
-    restaurantId: string | null;
-    restaurantSlug: string | null;
     name: string | null;
+    isSuperadmin: boolean;
+    memberships: Membership[];
   } | null;
 }
 
@@ -44,63 +50,103 @@ export async function getSession(): Promise<AuthSession> {
 
   if (!authUser) return { configured: true, bypass: false, user: null };
 
-  const rows = await db
+  const userRows = await db
     .select({
       id: users.id,
       email: users.email,
-      role: users.role,
-      restaurantId: users.restaurantId,
-      restaurantSlug: restaurants.slug,
       name: users.name,
+      isSuperadmin: users.isSuperadmin,
     })
     .from(users)
-    .leftJoin(restaurants, eq(users.restaurantId, restaurants.id))
     .where(eq(users.id, authUser.id))
     .limit(1);
 
-  const dbUser = rows[0];
+  const dbUser = userRows[0];
+
+  if (!dbUser) {
+    // Usuário existe em auth.users mas não em public.users (caso de criação manual no Studio).
+    return {
+      configured: true,
+      bypass: false,
+      user: {
+        id: authUser.id,
+        email: authUser.email ?? null,
+        name: authUser.user_metadata?.name ?? authUser.email ?? null,
+        isSuperadmin: false,
+        memberships: [],
+      },
+    };
+  }
+
+  const membershipRows = await db
+    .select({
+      restaurantId: userRestaurants.restaurantId,
+      restaurantSlug: restaurants.slug,
+      restaurantName: restaurants.name,
+      role: userRestaurants.role,
+    })
+    .from(userRestaurants)
+    .innerJoin(restaurants, eq(userRestaurants.restaurantId, restaurants.id))
+    .where(eq(userRestaurants.userId, authUser.id))
+    .orderBy(asc(restaurants.name));
 
   return {
     configured: true,
     bypass: false,
-    user: dbUser
-      ? {
-          id: dbUser.id,
-          email: dbUser.email,
-          role: dbUser.role as AppRole,
-          restaurantId: dbUser.restaurantId,
-          restaurantSlug: dbUser.restaurantSlug,
-          name: dbUser.name,
-        }
-      : {
-          id: authUser.id,
-          email: authUser.email ?? null,
-          role: null,
-          restaurantId: null,
-          restaurantSlug: null,
-          name: authUser.user_metadata?.name ?? authUser.email ?? null,
-        },
+    user: {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,
+      isSuperadmin: dbUser.isSuperadmin ?? false,
+      memberships: membershipRows.map((m) => ({
+        restaurantId: m.restaurantId,
+        restaurantSlug: m.restaurantSlug,
+        restaurantName: m.restaurantName,
+        role: m.role as MembershipRole,
+      })),
+    },
   };
 }
 
 /**
- * Caminho pra onde o usuário deve ir após login, baseado no role dele.
- * Roles sem destino definido caem em /admin/{slug} (o layout vai bloquear
- * com NoAccessScreen, mas o usuário tem oferta de "Sair" pra recomeçar).
+ * Caminho pra onde o usuário deve ir após login.
+ * - Superadmin → /admin (lista de todos os clientes)
+ * - 1+ membership → /admin/{primeiro slug em ordem alfabética}
+ * - 0 memberships → /login
  */
 export function redirectPathForUser(session: AuthSession): string {
   const u = session.user;
   if (!u) return "/login";
 
-  if (u.role === "superadmin") return "/admin";
-  if (!u.restaurantSlug) return "/login";
+  if (u.isSuperadmin) return "/admin";
 
-  switch (u.role) {
-    case "owner":
-      return `/admin/${u.restaurantSlug}`;
-    case "kitchen":
-      return `/kitchen/${u.restaurantSlug}`;
-    default:
-      return `/admin/${u.restaurantSlug}`;
+  const first = u.memberships[0];
+  if (!first) return "/login";
+
+  if (first.role === "kitchen") return `/kitchen/${first.restaurantSlug}`;
+  return `/admin/${first.restaurantSlug}`;
+}
+
+/**
+ * Retorna a membership do usuário para um slug específico, ou null.
+ * Superadmin retorna uma membership sintética com role "owner" para
+ * conveniência do código de autorização (acessa tudo como se fosse owner).
+ */
+export function findMembership(
+  session: AuthSession,
+  slug: string,
+): Membership | null {
+  const u = session.user;
+  if (!u) return null;
+  const direct = u.memberships.find((m) => m.restaurantSlug === slug);
+  if (direct) return direct;
+  if (u.isSuperadmin) {
+    return {
+      restaurantId: "",
+      restaurantSlug: slug,
+      restaurantName: "",
+      role: "owner",
+    };
   }
+  return null;
 }
